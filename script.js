@@ -16,8 +16,15 @@ const readerEl = document.getElementById("reader");
 
 function playBeep() {
   const beep = document.getElementById("beepSound");
+  beep.pause();
   beep.currentTime = 0;
-  beep.play().catch(() => {});
+
+  const playPromise = beep.play();
+  if (playPromise !== undefined) {
+    playPromise.catch(() => {
+      // ništa – Chrome blokira dok se ne klikne
+    });
+  }
 }
 
 function saveState() {
@@ -198,11 +205,18 @@ async function toggleCamera() {
     html5QrCode = new Html5Qrcode("reader");
 
     try {
-      await html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        decodedText => addItem(decodedText)
-      );
+      	await html5QrCode.start(
+  { facingMode: "environment" },
+  {
+    fps: 15,
+    qrbox: { width: 320, height: 320 },
+    experimentalFeatures: {
+      useBarCodeDetectorIfSupported: true
+    },
+    aspectRatio: 1.0,
+  },
+  decodedText => addItem(decodedText)
+);
 
       cameraOn = true;
       cameraBtnEl.innerText = "Zaustavi kameru";
