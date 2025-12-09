@@ -1,4 +1,6 @@
-// Lista skeniranih artikala
+// --------------------
+//  GLOBALNE PROMENLJIVE
+// --------------------
 
 let popisName = "";
 let items = {};
@@ -7,9 +9,82 @@ let items = {};
 let cameraOn = false;
 let html5QrCode = null;
 
-// Funkcija za početak popisa
+// Uzimamo elemente iz DOM-a
+const barcodeInput   = document.getElementById("barcodeInput");
+const listContainer  = document.getElementById("list");
+const totalCountEl   = document.getElementById("totalCount");
+const popisInputEl   = document.getElementById("popisName");
+const startBtnEl     = document.getElementById("startBtn");
+const resetBtnEl     = document.getElementById("resetBtn");
+const activePopisEl  = document.getElementById("activePopis");
+const cameraBtnEl    = document.getElementById("cameraBtn");
+const readerEl       = document.getElementById("reader");
+
+// --------------------
+//  ČUVANJE STANJA (localStorage)
+// --------------------
+
+function saveState() {
+  const state = {
+    popisName,
+    items
+  };
+  try {
+    localStorage.setItem("popisAppState", JSON.stringify(state));
+  } catch (e) {
+    console.log("Ne mogu da sačuvam stanje:", e);
+  }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem("popisAppState");
+    if (!raw) return;
+
+    const state = JSON.parse(raw);
+    if (!state || typeof state !== "object") return;
+
+    if (state.popisName) {
+      popisName = state.popisName;
+      items = state.items || {};
+
+      // Namesti UI kao da je popis već aktivan
+      popisInputEl.value = popisName;
+      popisInputEl.disabled = true;
+
+      startBtnEl.innerText = "Popis aktivan";
+      startBtnEl.style.background = "#d32f2f";
+      startBtnEl.disabled = true;
+
+      activePopisEl.innerText = "Aktivni popis: " + popisName;
+      resetBtnEl.style.display = "block";
+
+      renderList();
+    } else {
+      popisName = "";
+      items = {};
+      renderList();
+    }
+  } catch (e) {
+    console.log("Ne mogu da učitam stanje:", e);
+  }
+}
+
+function clearState() {
+  try {
+    localStorage.removeItem("popisAppState");
+  } catch (e) {
+    console.log("Ne mogu da obrišem stanje:", e);
+  }
+}
+
+// --------------------
+//  LOGIKA APLIKACIJE
+// --------------------
+
+// Start popisa
 function startPopis() {
-  const nameInput = document.getElementById("popisName").value.trim();
+  const nameInput = popisInputEl.value.trim();
 
   if (nameInput === "") {
     alert("Unesi naziv popisa pre početka!");
@@ -18,52 +93,41 @@ function startPopis() {
 
   popisName = nameInput;
 
-  // Zaključaj polje za naziv popisa
-  const popisInput = document.getElementById("popisName");
-  popisInput.disabled = true;
+  popisInputEl.disabled = true;
 
-  // Promeni dugme Start
-  const startBtn = document.getElementById("startBtn");
-  startBtn.innerText = "Popis aktivan";
-  startBtn.style.background = "#d32f2f";
-  startBtn.disabled = true;
+  startBtnEl.innerText = "Popis aktivan";
+  startBtnEl.style.background = "#d32f2f";
+  startBtnEl.disabled = true;
 
-  // Prikaži aktivan naziv popisa
-  document.getElementById("activePopis").innerText = "Aktivni popis: " + popisName;
+  activePopisEl.innerText = "Aktivni popis: " + popisName;
 
-  // Prikaži dugme za reset
-  document.getElementById("resetBtn").style.display = "block";
+  resetBtnEl.style.display = "block";
 
-  // Fokus na barcode input
-  document.getElementById("barcodeInput").focus();
+  barcodeInput.focus();
+
+  saveState();
 
   alert("Popis '" + popisName + "' je započet!");
 }
 
-// Resetovanje popisa
+// Reset popisa
 function resetPopis() {
-  // Reset svih podataka
   items = {};
   renderList();
 
   popisName = "";
 
-  // Reset HTML elemenata
-  const popisInput = document.getElementById("popisName");
-  popisInput.value = "";
-  popisInput.disabled = false;
+  popisInputEl.value = "";
+  popisInputEl.disabled = false;
 
-  const startBtn = document.getElementById("startBtn");
-  startBtn.innerText = "Start Popis";
-  startBtn.style.background = "#2196F3";
-  startBtn.disabled = false;
+  startBtnEl.innerText = "Start Popis";
+  startBtnEl.style.background = "#2196F3";
+  startBtnEl.disabled = false;
 
-  document.getElementById("activePopis").innerText = "";
+  activePopisEl.innerText = "";
 
-  document.getElementById("resetBtn").style.display = "none";
+  resetBtnEl.style.display = "none";
 
-  // Očisti i fokusiraj barcode input
-  const barcodeInput = document.getElementById("barcodeInput");
   barcodeInput.value = "";
   barcodeInput.focus();
 
@@ -71,12 +135,9 @@ function resetPopis() {
   if (cameraOn) {
     toggleCamera();
   }
-}
 
-// Uzimamo elemente iz DOM-a
-const barcodeInput = document.getElementById("barcodeInput");
-const listContainer = document.getElementById("list");
-const totalCountEl = document.getElementById("totalCount");
+  clearState();
+}
 
 // Dodavanje artikla
 function addItem(code) {
@@ -90,29 +151,31 @@ function addItem(code) {
   } else {
     items[code].quantity++;
   }
+
   renderList();
+  saveState();
 }
 
-// Računanje ukupnog broja komada
+// Ukupan broj komada
 function getTotal() {
   return Object.values(items).reduce((sum, item) => sum + item.quantity, 0);
 }
 
-// Funkcija za menjanje količine preko + / –
+// + / – promena količine
 function changeQty(code, delta) {
   if (!items[code]) return;
 
   items[code].quantity += delta;
 
-  // Ako količina padne na 0 ili ispod – izbaci artikal
   if (items[code].quantity <= 0) {
     delete items[code];
   }
 
   renderList();
+  saveState();
 }
 
-// Renderovanje liste na ekranu
+// Prikaz liste
 function renderList() {
   listContainer.innerHTML = "";
 
@@ -132,13 +195,12 @@ function renderList() {
     listContainer.appendChild(row);
   });
 
-  // Osveži ukupan broj komada
   if (totalCountEl) {
     totalCountEl.innerText = getTotal();
   }
 }
 
-// Skeniranje – Enter potvrđuje sken
+// Enter u polju za barkod = dodaj artikal
 barcodeInput.addEventListener("keyup", function(e) {
   if (e.key === "Enter" && barcodeInput.value.trim() !== "") {
     addItem(barcodeInput.value.trim());
@@ -146,7 +208,10 @@ barcodeInput.addEventListener("keyup", function(e) {
   }
 });
 
-// Izvoz u CSV fajl
+// --------------------
+//  LEPŠI EXPORT ZA EXCEL
+// --------------------
+
 function exportCSV() {
   if (!popisName) {
     alert("Prvo klikni Start Popis i unesi naziv!");
@@ -158,71 +223,81 @@ function exportCSV() {
     return;
   }
 
-  let csv = "Barcode,Quantity\n";
+  const fileName = popisName + ".csv";
+  const today = new Date().toLocaleDateString("sr-RS"); // npr. 12.02.2025
+
+  // CSV sa datumom i ; separatorom za LibreOffice
+  let csv = "";
+  csv += `Datum;${today}\n`;         // <- DATUM DODAT OVDE
+  csv += "Artikal;Kolicina\n";
 
   Object.keys(items).forEach(code => {
-    csv += `${code},${items[code].quantity}\n`;
+    csv += `${code};${items[code].quantity}\n`;
   });
 
-  const blob = new Blob([csv], { type: "text/csv" });
+  csv += `Ukupno;${getTotal()}\n`;
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = window.URL.createObjectURL(blob);
 
   const a = document.createElement("a");
   a.href = url;
-  a.download = popisName + ".csv";
+  a.download = fileName;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   window.URL.revokeObjectURL(url);
 
-  // Automatski resetuj app posle eksportovanja
+  alert(`Popis je eksportovan kao fajl "${fileName}".\nNaći ćeš ga u folderu Downloads.`);
+
   resetPopis();
 }
 
-// Paljenje / gašenje kamere za skeniranje
-async function toggleCamera() {
-  const reader = document.getElementById("reader");
-  const cameraBtn = document.getElementById("cameraBtn");
 
-  // Ako kamera NIJE uključena -> pokreni skeniranje
+
+// --------------------
+//  KAMERA
+// --------------------
+
+async function toggleCamera() {
+  if (!readerEl || !cameraBtnEl) return;
+
   if (!cameraOn) {
     if (!popisName) {
       alert("Prvo pokreni popis (Start Popis)!");
       return;
     }
 
-    reader.style.display = "block";
+    readerEl.style.display = "block";
 
     if (!html5QrCode) {
-      html5QrCode = new Html5Qrcode("reader");
+      html5QrCode = new Html5QrCode("reader");
     }
 
     try {
       await html5QrCode.start(
-        { facingMode: "environment" }, // zadnja kamera
+        { facingMode: "environment" },
         {
           fps: 10,
           qrbox: { width: 250, height: 250 }
         },
         (decodedText, decodedResult) => {
-          // Svaki skenirani kod ide u tvoj postojeći addItem
           addItem(decodedText);
         },
         (errorMessage) => {
-          // greške skeniranja ignorišemo
+          // ignorisemo promasaje
         }
       );
 
       cameraOn = true;
-      cameraBtn.innerText = "Zaustavi kameru";
+      cameraBtnEl.innerText = "Zaustavi kameru";
 
     } catch (err) {
       alert("Ne mogu da pokrenem kameru: " + err);
-      reader.style.display = "none";
+      readerEl.style.display = "none";
     }
 
   } else {
-    // Ako kamera već radi -> zaustavi je
     try {
       await html5QrCode.stop();
       await html5QrCode.clear();
@@ -230,8 +305,13 @@ async function toggleCamera() {
       console.log("Greška pri gašenju kamere:", err);
     }
 
-    reader.style.display = "none";
+    readerEl.style.display = "none";
     cameraOn = false;
-    cameraBtn.innerText = "Skeniraj kamerom";
+    cameraBtnEl.innerText = "Skeniraj kamerom";
   }
 }
+
+// --------------------
+//  UČITAJ STANJE NA STARTU
+// --------------------
+loadState();

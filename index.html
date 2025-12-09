@@ -2,25 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>Popis App</title>
-
-  <!-- Manifest (nije obavezno da bi app radila) -->
-  <link rel="manifest" href="./manifest.json">
-
-  <!-- Registracija service workera (ako ga nema, neće praviti problem) -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js').catch(() => {});
-      });
-    }
-  </script>
 
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 20px;
+      padding: 16px;
       background: #f4f4f4;
+      font-size: 18px;
+    }
+
+    .main-wrapper {
+      max-width: 480px;
+      margin: 0 auto;
     }
 
     h1 {
@@ -37,17 +33,19 @@
       margin-bottom: 10px;
     }
 
-    #startBtn {
+    #startBtn, #cameraBtn {
       width: 100%;
       padding: 12px;
-      background: #2196F3;
-      color: white;
       font-size: 18px;
       border: none;
       border-radius: 8px;
       margin-bottom: 20px;
       cursor: pointer;
+      color: white;
     }
+
+    #startBtn { background: #2196F3; }
+    #cameraBtn { background: #673AB7; }
 
     #barcodeInput {
       width: 100%;
@@ -56,18 +54,6 @@
       border-radius: 8px;
       border: 1px solid #aaa;
       margin-bottom: 10px;
-    }
-
-    #cameraBtn {
-      width: 100%;
-      padding: 12px;
-      background: #673AB7;
-      color: white;
-      font-size: 18px;
-      border: none;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      cursor: pointer;
     }
 
     #reader {
@@ -145,6 +131,8 @@
 
 <body>
 
+<div class="main-wrapper">
+
   <h1>Popis Artikala</h1>
 
   <h3 id="activePopis" style="text-align:center; color:#555; margin-bottom:20px;"></h3>
@@ -153,33 +141,26 @@
 
   <button id="startBtn" onclick="startPopis()">Start Popis</button>
 
-  <!-- Polje za unos barkoda -->
   <input type="text" id="barcodeInput" placeholder="Skeniraj barkod i pritisni Enter">
 
-  <!-- Dugme za kameru -->
   <button id="cameraBtn" onclick="toggleCamera()">Skeniraj kamerom</button>
 
-  <!-- Prozor kamere -->
   <div id="reader"></div>
 
-  <!-- Lista artikala -->
   <div id="list"></div>
 
-  <!-- Ukupan broj komada -->
   <div id="summary">
     Ukupno skeniranih komada: <span id="totalCount">0</span>
   </div>
 
-  <!-- Dugme za novi popis -->
   <button id="resetBtn" onclick="resetPopis()">Novi Popis</button>
 
-  <!-- Dugme za izvoz -->
   <button id="exportBtn" onclick="exportCSV()">Export CSV</button>
 
-  <!-- Biblioteka za skeniranje (sa interneta) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+</div>
 
-  <!-- Tvoj skript -->
-  <script src="script.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script src="script.js"></script>
+
 </body>
 </html>
