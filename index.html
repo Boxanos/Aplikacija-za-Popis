@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>Popis App</title>
+ 
+    <meta name="theme-color" content="#2196F3">
+  <link rel="manifest" href="manifest.json">
+
 
   <style>
     body {
@@ -161,6 +165,17 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <script src="script.js"></script>
+
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker
+        .register("service-worker.js")
+        .catch(err => console.log("SW reg error:", err));
+    });
+  }
+</script>
+
 
 </body>
 </html>
