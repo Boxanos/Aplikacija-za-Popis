@@ -14,14 +14,16 @@ const activePopisEl = document.getElementById("activePopis");
 const cameraBtnEl = document.getElementById("cameraBtn");
 const readerEl = document.getElementById("reader");
 
+// 🔥 AUDIO UNLOCK (Chrome requires user gesture)
 function unlockAudio() {
   const beep = document.getElementById("beepSound");
   beep.currentTime = 0;
   beep.play().then(() => {
-    console.log("Audio unlocked");
+    console.log("AUDIO UNLOCKED");
   }).catch(() => {});
 }
 
+// 🔥 Play BEEP after scan
 function playBeep() {
   const beep = document.getElementById("beepSound");
   beep.volume = 1.0;
@@ -44,11 +46,9 @@ function loadState() {
   if (popisName) {
     popisInputEl.value = popisName;
     popisInputEl.disabled = true;
-
     startBtnEl.innerText = "Popis aktivan";
     startBtnEl.style.background = "#d32f2f";
     startBtnEl.disabled = true;
-
     activePopisEl.innerText = "Aktivni popis: " + popisName;
     resetBtnEl.style.display = "block";
   }
@@ -69,11 +69,10 @@ function startPopis() {
   startBtnEl.innerText = "Popis aktivan";
   startBtnEl.style.background = "#d32f2f";
   startBtnEl.disabled = true;
-
   activePopisEl.innerText = "Aktivni popis: " + popisName;
   resetBtnEl.style.display = "block";
 
-  unlockAudio();  // 🔥 ovo 100% otključava zvuk na S25
+  unlockAudio(); // 🔥 Obezbeđuje da beep radi
 
   saveState();
 }
@@ -85,7 +84,6 @@ function resetPopis() {
 
   popisInputEl.disabled = false;
   popisInputEl.value = "";
-
   startBtnEl.innerText = "Start Popis";
   startBtnEl.style.background = "#2196F3";
   startBtnEl.disabled = false;
@@ -105,7 +103,7 @@ function addItem(code) {
   if (!items[code]) items[code] = { quantity: 1 };
   else items[code].quantity++;
 
-  playBeep();  // 🔥 sada radi 100%
+  playBeep(); // 🔥 radi sigurno
 
   renderList();
   saveState();
@@ -146,6 +144,7 @@ function renderList() {
   totalCountEl.innerText = getTotal();
 }
 
+// Enter manual input
 barcodeInput.addEventListener("keyup", e => {
   if (e.key === "Enter" && barcodeInput.value.trim() !== "") {
     addItem(barcodeInput.value.trim());
@@ -153,6 +152,7 @@ barcodeInput.addEventListener("keyup", e => {
   }
 });
 
+// Export CSV
 function exportCSV() {
   if (!popisName) return alert("Pokreni popis!");
   if (Object.keys(items).length === 0) return alert("Nema stavki!");
@@ -177,13 +177,15 @@ function exportCSV() {
   URL.revokeObjectURL(url);
 }
 
+// Simple mail starter
 function sendEmail() {
   const email = "velinastr@gmail.com";
   const subject = encodeURIComponent("Popis - " + popisName);
-  const body = encodeURIComponent("Popis završen. CSV je priložen u export.");
+  const body = encodeURIComponent("Popis završen. CSV fajl možeš poslati preko Export CSV opcije.");
   window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
 }
 
+// 🔥 NAJVAŽNIJI DEO — SIGURNO BIRAMO ZADNJU KAMERU
 async function toggleCamera() {
   if (!cameraOn) {
     if (!popisName) return alert("Pokreni popis!");
@@ -192,7 +194,7 @@ async function toggleCamera() {
     html5QrCode = new Html5Qrcode("reader");
 
     try {
-      // 🔥 Pronađi sve kamere
+      // ✔ Dobijamo listu kamera
       const devices = await Html5Qrcode.getCameras();
 
       if (devices.length === 0) {
@@ -200,14 +202,14 @@ async function toggleCamera() {
         return;
       }
 
-      // 🔥 Uvek biramo zadnju kameru (environment)
-      let backCamera = devices.find(c => c.label.toLowerCase().includes("back"));
-      if (!backCamera) backCamera = devices[devices.length - 1];
+      // ✔ Tražimo zadnju kameru
+      let backCam = devices.find(d => d.label.toLowerCase().includes("back"));
+      if (!backCam) backCam = devices[devices.length - 1];
 
-      console.log("Korišćena kamera:", backCamera);
+      console.log("Koristim kameru:", backCam.label);
 
       await html5QrCode.start(
-        backCamera.id,
+        backCam.id,
         {
           fps: 20,
           qrbox: { width: 360, height: 360 },
@@ -238,6 +240,5 @@ async function toggleCamera() {
     cameraBtnEl.innerText = "Skeniraj kamerom";
   }
 }
-
 
 loadState();
