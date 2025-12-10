@@ -16,15 +16,9 @@ const readerEl = document.getElementById("reader");
 
 function playBeep() {
   const beep = document.getElementById("beepSound");
-  beep.pause();
+  beep.volume = 1.0;
   beep.currentTime = 0;
-
-  const playPromise = beep.play();
-  if (playPromise !== undefined) {
-    playPromise.catch(() => {
-      // ništa – Chrome blokira dok se ne klikne
-    });
-  }
+  beep.play().catch(() => {});
 }
 
 function saveState() {
@@ -42,11 +36,9 @@ function loadState() {
   if (popisName) {
     popisInputEl.value = popisName;
     popisInputEl.disabled = true;
-
     startBtnEl.innerText = "Popis aktivan";
     startBtnEl.style.background = "#d32f2f";
     startBtnEl.disabled = true;
-
     activePopisEl.innerText = "Aktivni popis: " + popisName;
     resetBtnEl.style.display = "block";
   }
@@ -60,20 +52,20 @@ function clearState() {
 
 function startPopis() {
   const nameInput = popisInputEl.value.trim();
-  if (nameInput === "") return alert("Unesi naziv popisa!");
+  if (!nameInput) return alert("Unesi naziv popisa!");
 
   popisName = nameInput;
   popisInputEl.disabled = true;
-
   startBtnEl.innerText = "Popis aktivan";
   startBtnEl.style.background = "#d32f2f";
   startBtnEl.disabled = true;
-
   activePopisEl.innerText = "Aktivni popis: " + popisName;
   resetBtnEl.style.display = "block";
 
+  // Unlock audio
+  playBeep();
+
   saveState();
-  alert("Popis '" + popisName + "' je započet!");
 }
 
 function resetPopis() {
@@ -83,14 +75,11 @@ function resetPopis() {
 
   popisInputEl.disabled = false;
   popisInputEl.value = "";
-
   startBtnEl.innerText = "Start Popis";
   startBtnEl.style.background = "#2196F3";
   startBtnEl.disabled = false;
-
   activePopisEl.innerText = "";
   resetBtnEl.style.display = "none";
-
   barcodeInput.value = "";
   renderList();
 
@@ -137,7 +126,6 @@ function renderList() {
         <button onclick="changeQty('${code}', 1)">+</button>
       </div>
     `;
-
     listContainer.appendChild(row);
   });
 
@@ -164,18 +152,15 @@ function exportCSV() {
 
   csv += `Ukupno;${getTotal()}\n`;
 
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = window.URL.createObjectURL(blob);
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
   a.href = url;
   a.download = popisName + ".csv";
-  document.body.appendChild(a);
   a.click();
-  document.body.removeChild(a);
-  window.URL.revokeObjectURL(url);
 
-  alert("CSV je sačuvan!");
+  URL.revokeObjectURL(url);
 }
 
 function sendEmail() {
@@ -205,24 +190,27 @@ async function toggleCamera() {
     html5QrCode = new Html5Qrcode("reader");
 
     try {
-      	await html5QrCode.start(
-  { facingMode: "environment" },
-  {
-    fps: 15,
-    qrbox: { width: 320, height: 320 },
-    experimentalFeatures: {
-      useBarCodeDetectorIfSupported: true
-    },
-    aspectRatio: 1.0,
-  },
-  decodedText => addItem(decodedText)
-);
+      await html5QrCode.start(
+        { facingMode: { ideal: "environment" } },
+        {
+          fps: 20,
+          qrbox: { width: 360, height: 360 },
+          aspectRatio: 1.0,
+          experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+          videoConstraints: {
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            focusMode: "continuous"
+          }
+        },
+        decodedText => addItem(decodedText)
+      );
 
       cameraOn = true;
       cameraBtnEl.innerText = "Zaustavi kameru";
 
     } catch (err) {
-      alert("Greška sa kamerom!");
+      alert("Greška sa kamerom: " + err);
       readerEl.style.display = "none";
     }
 
