@@ -241,4 +241,3 @@ async function toggleCamera() {
 
 
 loadState();
-
