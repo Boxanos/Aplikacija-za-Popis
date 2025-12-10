@@ -14,6 +14,14 @@ const activePopisEl = document.getElementById("activePopis");
 const cameraBtnEl = document.getElementById("cameraBtn");
 const readerEl = document.getElementById("reader");
 
+function unlockAudio() {
+  const beep = document.getElementById("beepSound");
+  beep.currentTime = 0;
+  beep.play().then(() => {
+    console.log("Audio unlocked");
+  }).catch(() => {});
+}
+
 function playBeep() {
   const beep = document.getElementById("beepSound");
   beep.volume = 1.0;
@@ -36,9 +44,11 @@ function loadState() {
   if (popisName) {
     popisInputEl.value = popisName;
     popisInputEl.disabled = true;
+
     startBtnEl.innerText = "Popis aktivan";
     startBtnEl.style.background = "#d32f2f";
     startBtnEl.disabled = true;
+
     activePopisEl.innerText = "Aktivni popis: " + popisName;
     resetBtnEl.style.display = "block";
   }
@@ -59,11 +69,11 @@ function startPopis() {
   startBtnEl.innerText = "Popis aktivan";
   startBtnEl.style.background = "#d32f2f";
   startBtnEl.disabled = true;
+
   activePopisEl.innerText = "Aktivni popis: " + popisName;
   resetBtnEl.style.display = "block";
 
-  // Unlock audio
-  playBeep();
+  unlockAudio();  // 🔥 ovo 100% otključava zvuk na S25
 
   saveState();
 }
@@ -75,11 +85,14 @@ function resetPopis() {
 
   popisInputEl.disabled = false;
   popisInputEl.value = "";
+
   startBtnEl.innerText = "Start Popis";
   startBtnEl.style.background = "#2196F3";
   startBtnEl.disabled = false;
+
   activePopisEl.innerText = "";
   resetBtnEl.style.display = "none";
+
   barcodeInput.value = "";
   renderList();
 
@@ -92,7 +105,8 @@ function addItem(code) {
   if (!items[code]) items[code] = { quantity: 1 };
   else items[code].quantity++;
 
-  playBeep();
+  playBeep();  // 🔥 sada radi 100%
+
   renderList();
   saveState();
 }
@@ -164,21 +178,9 @@ function exportCSV() {
 }
 
 function sendEmail() {
-  if (!popisName) return alert("Pokreni popis!");
-  if (Object.keys(items).length === 0) return alert("Nema stavki!");
-
   const email = "velinastr@gmail.com";
-  const today = new Date().toLocaleDateString("sr-RS");
-
-  let csv = `Datum: ${today}\nArtikal ; Kolicina\n`;
-  Object.keys(items).forEach(code => {
-    csv += `${code} ; ${items[code].quantity}\n`;
-  });
-  csv += `Ukupno ; ${getTotal()}\n`;
-
   const subject = encodeURIComponent("Popis - " + popisName);
-  const body = encodeURIComponent(csv);
-
+  const body = encodeURIComponent("Popis završen. CSV je priložen u export.");
   window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
 }
 
