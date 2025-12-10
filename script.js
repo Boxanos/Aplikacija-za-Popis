@@ -194,30 +194,39 @@ async function toggleCamera() {
     html5QrCode = new Html5Qrcode("reader");
 
     try {
-      // ✔ Dobijamo listu kamera
-      const devices = await Html5Qrcode.getCameras();
+      // 🔥 Dobijamo sve info o kamerama direktno iz browser API-ja
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(d => d.kind === "videoinput");
 
-      if (devices.length === 0) {
-        alert("Nema dostupnih kamera.");
+      if (videoDevices.length === 0) {
+        alert("Nema kamera na uređaju.");
         return;
       }
 
-      // ✔ Tražimo zadnju kameru
-      let backCam = devices.find(d => d.label.toLowerCase().includes("back"));
-      if (!backCam) backCam = devices[devices.length - 1];
+      // 🔥 Biramo kameru koja NIJE front-facing
+      let backCamera = videoDevices.find(d =>
+        d.label.toLowerCase().includes("back")
+      );
 
-      console.log("Koristim kameru:", backCam.label);
+      // Ako Chrome ne napiše "back", biramo kameru sa najvećom rezolucijom
+      if (!backCamera) {
+        backCamera = videoDevices[videoDevices.length - 1];
+      }
+
+      console.log("Izabrana kamera:", backCamera);
 
       await html5QrCode.start(
-        backCam.id,
+        backCamera.deviceId,
         {
           fps: 20,
           qrbox: { width: 360, height: 360 },
           aspectRatio: 1.0,
           experimentalFeatures: { useBarCodeDetectorIfSupported: true },
           videoConstraints: {
+            deviceId: backCamera.deviceId,
             width: { ideal: 1920 },
             height: { ideal: 1080 },
+            facingMode: "environment",
             focusMode: "continuous"
           }
         },
@@ -241,4 +250,6 @@ async function toggleCamera() {
   }
 }
 
+
 loadState();
+
