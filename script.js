@@ -192,8 +192,22 @@ async function toggleCamera() {
     html5QrCode = new Html5Qrcode("reader");
 
     try {
+      // 🔥 Pronađi sve kamere
+      const devices = await Html5Qrcode.getCameras();
+
+      if (devices.length === 0) {
+        alert("Nema dostupnih kamera.");
+        return;
+      }
+
+      // 🔥 Uvek biramo zadnju kameru (environment)
+      let backCamera = devices.find(c => c.label.toLowerCase().includes("back"));
+      if (!backCamera) backCamera = devices[devices.length - 1];
+
+      console.log("Korišćena kamera:", backCamera);
+
       await html5QrCode.start(
-        { facingMode: { ideal: "environment" } },
+        backCamera.id,
         {
           fps: 20,
           qrbox: { width: 360, height: 360 },
@@ -225,4 +239,6 @@ async function toggleCamera() {
   }
 }
 
+
 loadState();
+
