@@ -193,7 +193,7 @@ barcodeInput.addEventListener("keyup", e => {
   }
 });
 
-// Export CSV
+// Export 
 function exportCSV() {
   unlockAudio();
 
