@@ -14,21 +14,56 @@ const activePopisEl = document.getElementById("activePopis");
 const cameraBtnEl = document.getElementById("cameraBtn");
 const readerEl = document.getElementById("reader");
 
-// 🔥 AUDIO UNLOCK (Chrome requires user gesture)
+let audioUnlocked = false;
+
+// ✅ AUDIO UNLOCK (mobile browsers require a real user gesture)
 function unlockAudio() {
   const beep = document.getElementById("beepSound");
-  beep.currentTime = 0;
-  beep.play().then(() => {
-    console.log("AUDIO UNLOCKED");
-  }).catch(() => {});
+  if (!beep) return;
+
+  // već otključano
+  if (audioUnlocked) return;
+
+  try {
+    beep.volume = 0.0;       // tiho otključavanje
+    beep.currentTime = 0;
+
+    const p = beep.play();
+    if (p && typeof p.then === "function") {
+      p.then(() => {
+        beep.pause();
+        beep.currentTime = 0;
+        beep.volume = 1.0;
+        audioUnlocked = true;
+        // console.log("AUDIO UNLOCKED");
+      }).catch((err) => {
+        // iOS/Android blokira dok ne bude pravi gesture - probamo opet na sledeći klik
+        // console.warn("Audio unlock blocked:", err);
+      });
+    }
+  } catch (e) {
+    // console.warn("Audio unlock error:", e);
+  }
 }
 
-// 🔥 Play BEEP after scan
+// ✅ Play beep (safe)
 function playBeep() {
   const beep = document.getElementById("beepSound");
+  if (!beep) return;
+
+  // fallback feedback na telefonu
+  if (navigator.vibrate) navigator.vibrate(40);
+
   beep.volume = 1.0;
   beep.currentTime = 0;
-  beep.play().catch(() => {});
+
+  const p = beep.play();
+  if (p && typeof p.catch === "function") {
+    p.catch(() => {
+      // Ako je blokirano, pokušaj otključavanje pa sledeći put će raditi
+      unlockAudio();
+    });
+  }
 }
 
 function saveState() {
@@ -61,6 +96,9 @@ function clearState() {
 }
 
 function startPopis() {
+  // ✅ user gesture -> unlock audio
+  unlockAudio();
+
   const nameInput = popisInputEl.value.trim();
   if (!nameInput) return alert("Unesi naziv popisa!");
 
@@ -71,8 +109,6 @@ function startPopis() {
   startBtnEl.disabled = true;
   activePopisEl.innerText = "Aktivni popis: " + popisName;
   resetBtnEl.style.display = "block";
-
-  unlockAudio(); // 🔥 Obezbeđuje da beep radi
 
   saveState();
 }
@@ -103,7 +139,7 @@ function addItem(code) {
   if (!items[code]) items[code] = { quantity: 1 };
   else items[code].quantity++;
 
-  playBeep(); // 🔥 radi sigurno
+  playBeep();
 
   renderList();
   saveState();
@@ -144,9 +180,14 @@ function renderList() {
   totalCountEl.innerText = getTotal();
 }
 
+// ✅ dodatno: unlock na fokus u input (telefon)
+barcodeInput.addEventListener("focus", unlockAudio);
+popisInputEl.addEventListener("focus", unlockAudio);
+
 // Enter manual input
 barcodeInput.addEventListener("keyup", e => {
   if (e.key === "Enter" && barcodeInput.value.trim() !== "") {
+    unlockAudio(); // ✅ user action -> unlock
     addItem(barcodeInput.value.trim());
     barcodeInput.value = "";
   }
@@ -154,6 +195,8 @@ barcodeInput.addEventListener("keyup", e => {
 
 // Export CSV
 function exportCSV() {
+  unlockAudio();
+
   if (!popisName) return alert("Pokreni popis!");
   if (Object.keys(items).length === 0) return alert("Nema stavki!");
 
@@ -179,22 +222,25 @@ function exportCSV() {
 
 // Simple mail starter
 function sendEmail() {
+  unlockAudio();
+
   const email = "velinastr@gmail.com";
   const subject = encodeURIComponent("Popis - " + popisName);
   const body = encodeURIComponent("Popis završen. CSV fajl možeš poslati preko Export CSV opcije.");
   window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
 }
 
-// 🔥 NAJVAŽNIJI DEO — SIGURNO BIRAMO ZADNJU KAMERU
+// ✅ kamera: unlock pre start-a (najbitnije za mobile)
 async function toggleCamera() {
   if (!cameraOn) {
     if (!popisName) return alert("Pokreni popis!");
+
+    unlockAudio(); // ✅ TAP na dugme kamera -> user gesture
 
     readerEl.style.display = "block";
     html5QrCode = new Html5Qrcode("reader");
 
     try {
-      // 🔥 Dobijamo sve info o kamerama direktno iz browser API-ja
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter(d => d.kind === "videoinput");
 
@@ -203,17 +249,8 @@ async function toggleCamera() {
         return;
       }
 
-      // 🔥 Biramo kameru koja NIJE front-facing
-      let backCamera = videoDevices.find(d =>
-        d.label.toLowerCase().includes("back")
-      );
-
-      // Ako Chrome ne napiše "back", biramo kameru sa najvećom rezolucijom
-      if (!backCamera) {
-        backCamera = videoDevices[videoDevices.length - 1];
-      }
-
-      console.log("Izabrana kamera:", backCamera);
+      let backCamera = videoDevices.find(d => d.label.toLowerCase().includes("back"));
+      if (!backCamera) backCamera = videoDevices[videoDevices.length - 1];
 
       await html5QrCode.start(
         backCamera.deviceId,
@@ -230,7 +267,10 @@ async function toggleCamera() {
             focusMode: "continuous"
           }
         },
-        decodedText => addItem(decodedText)
+        decodedText => {
+          // ✅ decodedText okida addItem -> beep
+          addItem(decodedText);
+        }
       );
 
       cameraOn = true;
@@ -250,6 +290,4 @@ async function toggleCamera() {
   }
 }
 
-
 loadState();
-
